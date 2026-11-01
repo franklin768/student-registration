@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Arteka's Cyber - Full System</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: Arial, sans-serif;
+      }
+      body {
+        background: #f4f4f4;
+      }
+      header {
+        background: #0a3d62;
+        color: #fff;
+        padding: 15px;
+        text-align: center;
+      }
+      nav {
+        background: #27ae60;
+        padding: 10px;
+        text-align: center;
+      }
+      nav a,
+      nav button {
+        color: #fff;
+        margin: 0 10px;
+        text-decoration: none;
+        font-weight: bold;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 1em;
+      }
+      section {
+        padding: 20px;
+        max-width: 900px;
+        margin: auto;
+      }
+      .hidden {
+        display: none;
+      }
+      .card {
+        background: #fff;
+        padding: 15px;
+        border-radius: 10px;
+        margin: 10px 0;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      input,
+      button {
+        padding: 10px;
+        width: 100%;
+        margin: 5px 0;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+      }
+      button.primary {
+        background: #0a3d62;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      button.green {
+        background: #27ae60;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+      }
+      #orders li {
+        background: #fff;
+        padding: 10px;
+        margin: 5px 0;
+        border-radius: 5px;
+        list-style: none;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>ARTEKA CYBER CAFE</h1>
+      <p id="welcome">karibu! Please Login</p>
+    </header>
+
+    <nav>
+      <a href="#home" onclick="show('home')">Home</a>
+      <a href="#services" onclick="show('services')">Services</a>
+      <a href="#orders" onclick="show('orders')">My Orders</a>
+      <button onclick="logout()">Logout</button>
+    </nav>
+    <!-- AUTH -->
+    <section id="auth">
+      <div class="card">
+        <h2>Register</h2>
+        <input id="reg-name" placeholder="Full Name" />
+        <input id="reg-phone" placeholder="Phone Number" />
+        <input id="reg-pass" type="password" placeholder="password" />
+        <button class="primary" onclick="register()">Register</button>
+      </div>
+      <div class="card">
+        <h2>Login</h2>
+        <input id="login-phone" placeholder="Phone Number" />
+        <input id="login-pass" type="password" placeholder="Password" />
+        <button class="green" onclick="login()">Login</button>
+      </div>
+    </section>
+
+    <!-- HOME / SERVICES -->
+    <section id="home" class="hidden">
+      <div class="card">
+        <h2>Welcome To Arteka!</h2>
+        <p>
+          Printing from ksh 5, eCitizen, KRA, Browsing, Design. Fast services.
+        </p>
+      </div>
+    </section>
+    <section id="services" class="hidden">
+      <h2>Services - Add to Order</h2>
+      <div id="service-list"></div>
+      <div class="card">
+        <h3>Your Cart Total: Ksh <span id="total">0</span></h3>
+        <button class="green" onclick="placeOrder()">
+          Place Order (Save to Database)
+        </button>
+      </div>
+    </section>
+
+    <!-- ORDERS DATABASE -->
+    <section id="orders" class="hidden">
+      <h2>My Orders (Saved Database)</h2>
+      <ul id="orders"></ul>
+    </section>
+
+    <script>
+      const services = [
+        { name: "Printing B/W", price: 10 },
+        { name: "Colour Printing", price: 50 },
+        { name: "Photocopy", price: 5 },
+        { name: "Browsing 1hr", price: 50 },
+        { name: "eCitizen", price: 100 },
+        { name: "KRA PIN", price: 150 },
+        { name: "Laminaation", price: 50 },
+        { name: "CV Design", price: 300 },
+      ];
+      let cart = [];
+      let currentUser = JSON.parse(
+        localStorage.getItem("arteka_user") || "null",
+      );
+
+      // Show page
+      function show(page) {
+        doument.getElementByid("auth").classList.add("hidden");
+        doument.getElementByid("home").classList.add("hidden");
+        doument.getElementByid("services").classList.add("hidden");
+        doument.getElementByid("orders").classList.add("hidden");
+        doument.getElementByid(page).classList.remove("hidden");
+        if (page === "orders") loadOrders();
+      }
+
+      // Auth functions - DATABASE using localStorage
+      function register() {
+        let name = document.getElementById("reg-name").value;
+        let phone = document.getElementById("reg-phone").value;
+        let pass = document.getElementById("reg-pass").value;
+        if (!name || !phone || !pass) return alert("Fill all fields");
+        let users = JSON.parse(localStorage.getItem("arteka_users") || "[]");
+        users.push({ name, phone, pass });
+        localStorage.setItem("arteka_users", JSON.stringify(users));
+        alert("Registered! Now login.");
+      }
+      function login() {
+        let phone = document.getElementById("login-phone").value;
+        let pass = document.getElementById("login-pass").value;
+        let users = JSON.parse(localStorage.getItem("arteka_users") || "[]");
+        let user = users.find((u) => u.phone === phone && u.pass === pass);
+        if (user) {
+          currentUser = user;
+          localStorage.setItem("arteka_user", JSON.stringify(user));
+          document.getElementById("welcome").textContent =
+            "karibu, " + user.name;
+          document.getElementById("auth").classList.add("hidden");
+          show("home");
+          loadServices();
+        } else {
+          alert("Wrong phone or password");
+        }
+      }
+
+      function logout() {
+        currentUser = null;
+        localStorage.removeItem("arteka_user");
+        location.reload();
+      }
+
+      // Services
+      function loadServices() {
+        let list = document.getElementById("service-list");
+        list.innerHTML = "";
+        services.forEach((s, i) => {
+          list.innerHTML +=
+            '<div class="card"><b>${s.name}</b> - Ksh ${s.price} <button class="green" onclick="addToCart(${i})">Add</button></div>';
+        });
+      }
+      function addToCart(i) {
+        cart.push(services[i]);
+        document.getElementById("total").textContent = cart.reduce(
+          (a, b) => a + b.price,
+          0,
+        );
+      }
+
+      function placeOrder() {
+        if (!currentUser) return alert("Login first");
+        if (cart.length === 0) return alert("Cart empty");
+        let orders = JSON.parse(
+          localStorage.getItem("arteka_orders_" + currentUser.phone) || "[]",
+        );
+        let total = cart.reduce((a, b) => a + b.price, 0);
+        orders.push({
+          items: [...cart],
+          total,
+          date: new Date().toLocaleString(),
+        });
+        localStorage.setItem(
+          "arteka_orders_" + currentUser.phone,
+          JSON.stringify(orders),
+        );
+        cart = [];
+        document.getElementById("total").textContent = 0;
+        alert("Order saved! Total Ksh " + total);
+        show("orders");
+      }
+
+      function loadOrders() {
+        let orders = JSON.parse(
+          localStorage.getItem("arteka_orders_" + currentUser.phone) || "[]",
+        );
+        let ul = document.getElementById("orders");
+        ul.innerHTML = "";
+        if (orders.length === 0) ul.innerHTML = "<li>No orders yet</li>";
+        orders.forEach((o) => {
+          ((ul.innerHTML +=
+            "<li><b>${o.date}</b> - Ksh ${o.total}<br>${o.items.map(i=>i.name).join("),
+            ")}</li>");
+        });
+      }
+
+      // Auto login if already logged in
+      if (currentUser) {
+        document.getElementById("welcome").textContent =
+          "karibu, " + currentUser.name;
+        document.getElementById("auth").classList.add("hidden");
+        show("home");
+        loadServices();
+      }
+    </script>
+  </body>
+</html>
